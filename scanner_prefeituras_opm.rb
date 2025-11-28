@@ -150,7 +150,7 @@ class PrefeituraOPMScanner
   end
   
   def encontrar_site_prefeitura(municipio)
-    query = "site:mg.gov.br \"#{municipio[:nome]}\" prefeitura OR \"#{municipio[:nome]}\" OR município"
+    query = "site:gov.br prefeitura de #{municipio[:nome]} em mg"
     response = self.class.get('', query: {key: GOOGLE_API_KEY, cx: SEARCH_ENGINE_ID, q: query, num: 3}, timeout: 15)
     @queries_realizadas += 1
     
@@ -213,12 +213,12 @@ class PrefeituraOPMScanner
       'site_prefeitura' => site_prefeitura,
       'opm_encontrada' => urls_opm.any?,
       'quantidade_urls' => urls_opm.count,
-            'urls' => urls_opm || [],   # ✅ garante que nunca seja nil
+      'urls' => urls_opm || [],   # ✅ garante que nunca seja nil
       'timestamp' => Time.now.strftime('%Y-%m-%d %H:%M:%S')
     }
     
     registrar_csv(municipio, site_prefeitura, urls_opm || [])
-    
+
     @resultados << resultado
     exportar_json_incremental
     exportar_json_formatado_incremental
@@ -274,11 +274,11 @@ class PrefeituraOPMScanner
     @@json_mutex.synchronize do
       com_opm = @resultados.select { |r| r['opm_encontrada'] }
       sem_opm = @resultados.reject { |r| r['opm_encontrada'] }
-      
+
       palavras_chave_frequencia = {}
       com_opm.each do |municipio|
         (municipio['urls'] || []).each do |url|
-          (url['palavras_chave_encontradas'] || []).each do |palavra|
+          (url[:palavras_chave_encontradas] || []).each do |palavra|
             palavras_chave_frequencia[palavra] ||= 0
             palavras_chave_frequencia[palavra] += 1
           end
@@ -328,10 +328,10 @@ class PrefeituraOPMScanner
               'urls' => (municipio['urls'] || []).map do |url|
                 {
                   'posicao' => (municipio['urls'] || []).index(url) + 1,
-                  'url' => url['url'],
-                  'titulo' => url['titulo'],
-                  'snippet' => url['snippet'],
-                  'palavras_chave_encontradas' => url['palavras_chave_encontradas'] || []
+                  'url' => url[:url],
+                  'titulo' => url[:titulo],
+                  'snippet' => url[:snippet],
+                  'palavras_chave_encontradas' => url[:palavras_chave_encontradas] || []
                 }
               end,
               'timestamp' => municipio['timestamp']
